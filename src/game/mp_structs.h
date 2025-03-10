@@ -1,3 +1,5 @@
+#include "xtl.h"
+
 #pragma warning(disable : 4480)
 
 namespace mp
@@ -197,6 +199,63 @@ namespace mp
         ASSET_TYPE_ASSETLIST = 0x23,
     };
 
+    /* 760 */
+    enum MapType : __int32
+    {
+        MAPTYPE_NONE = 0x0,
+        MAPTYPE_INVALID1 = 0x1,
+        MAPTYPE_INVALID2 = 0x2,
+        MAPTYPE_2D = 0x3,
+        MAPTYPE_3D = 0x4,
+        MAPTYPE_CUBE = 0x5,
+        MAPTYPE_COUNT = 0x6,
+    };
+
+    /* 8713 */
+    union GfxTexture
+    {
+        D3DBaseTexture *basemap;
+        D3DTexture *map;
+        D3DVolumeTexture *volmap;
+        D3DCubeTexture *cubemap;
+        struct GfxImageLoadDef *loadDef; // forward declaration
+    };
+
+    /* 8714 */
+    struct GfxImageLoadDef
+    {
+        unsigned __int8 levelCount;
+        unsigned __int8 flags;
+        __int16 dimensions[3];
+        int format;
+        GfxTexture texture;
+    };
+
+    /* 8715 */
+    struct CardMemory
+    {
+        int platform[1];
+    };
+
+    /* 8716 */
+    struct GfxImage
+    {
+        MapType mapType;
+        GfxTexture texture;
+        unsigned __int8 semantic;
+        CardMemory cardMemory;
+        unsigned __int16 width;
+        unsigned __int16 height;
+        unsigned __int16 depth;
+        unsigned __int8 category;
+        bool delayLoadPixels;
+        unsigned __int8 *pixels;
+        unsigned int baseSize;
+        unsigned __int16 streamSlot;
+        bool streaming;
+        const char *name;
+    };
+
     struct RawFile
     {
         const char *name;
@@ -214,7 +273,7 @@ namespace mp
         // MaterialPixelShader *pixelShader;
         // MaterialVertexShader *vertexShader;
         // MaterialTechniqueSet *techniqueSet;
-        // GfxImage *image;
+        GfxImage *image;
         // snd_alias_list_t *sound;
         // SndCurve *sndCurve;
         // LoadedSound *loadSnd;
@@ -268,6 +327,12 @@ namespace mp
         CON_BUILTIN_CHANNEL_COUNT = 0x19,
     };
 
+    struct ImageList
+    {
+        unsigned int count;
+        GfxImage *image[2048];
+    };
+
     typedef void (*Cbuf_AddText_t)(int localClientNum, const char *text);
 
     typedef void (*CL_ConsolePrint_t)(int localClientNum, int channel, const char *txt, int duration, int pixelWidth, int flags);
@@ -281,8 +346,14 @@ namespace mp
     typedef void (*Com_PrintWarning_t)(conChannel_t channel, const char *fmt, ...);
 
     typedef void (*DB_EnumXAssets_FastFile_t)(XAssetType type, void (*func)(void *asset, void *inData), void *inData, bool includeOverride);
+    typedef XAssetHeader *(*DB_FindXAssetHeader_t)(const XAssetType type, const char *name);
+    typedef int (*DB_GetAllXAssetOfType_FastFile_t)(XAssetType type, XAssetHeader *assets, int maxCount);
 
     typedef void (*Load_MapEntsPtr_t)();
+
+    typedef void (*R_DownsampleMipMapBilinear_t)(const unsigned __int8 *src, int srcWidth, int srcHeight, int texelPitch, unsigned __int8 *dst);
+    typedef void (*R_GetImageList_t)(ImageList *imageList);
+    typedef int (*R_StreamLoadFileSynchronously_t)(const char *filename, unsigned int bytesToRead, unsigned __int8 *outData);
 
     typedef char *(*Scr_ReadFile_FastFile_t)(const char *filename, const char *extFilename, const char *codePos, bool archive);
 }
