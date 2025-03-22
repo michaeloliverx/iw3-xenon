@@ -359,6 +359,9 @@ namespace mp
     Dvar_RegisterEnum_t Dvar_RegisterEnum = reinterpret_cast<Dvar_RegisterEnum_t>(0x821D4F88);
     Dvar_RegisterInt_t Dvar_RegisterInt = reinterpret_cast<Dvar_RegisterInt_t>(0x821D5138);
 
+    G_SetAngle_t G_SetAngle = reinterpret_cast<G_SetAngle_t>(0x8224AA98);
+    G_SetOrigin_t G_SetOrigin = reinterpret_cast<G_SetOrigin_t>(0x8224AAF0);
+
     I_strnicmp_t I_strnicmp = reinterpret_cast<I_strnicmp_t>(0x821CDA98);
 
     Load_MapEntsPtr_t Load_MapEntsPtr = reinterpret_cast<Load_MapEntsPtr_t>(0x822A9648);
@@ -371,6 +374,8 @@ namespace mp
     R_RegisterFont_t R_RegisterFont = reinterpret_cast<R_RegisterFont_t>(0x8216EC00);
     R_StreamLoadFileSynchronously_t R_StreamLoadFileSynchronously = reinterpret_cast<R_StreamLoadFileSynchronously_t>(0x82151510);
 
+    SetClientViewAngle_t SetClientViewAngle = reinterpret_cast<SetClientViewAngle_t>(0x82284C60);
+
     SCR_DrawSmallStringExt_t SCR_DrawSmallStringExt = reinterpret_cast<SCR_DrawSmallStringExt_t>(0x822C9B88);
 
     Scr_ReadFile_FastFile_t Scr_ReadFile_FastFile = reinterpret_cast<Scr_ReadFile_FastFile_t>(0x82221220);
@@ -380,6 +385,8 @@ namespace mp
     SV_SendServerCommand_t SV_SendServerCommand = reinterpret_cast<SV_SendServerCommand_t>(0x821FFE30);
 
     Sys_SnapVector_t Sys_SnapVector = reinterpret_cast<Sys_SnapVector_t>(0x821A3BD0);
+
+    TeleportPlayer_t TeleportPlayer = reinterpret_cast<TeleportPlayer_t>(0x8226F408);
 
     UI_DrawBuildNumber_t UI_DrawBuildNumber = reinterpret_cast<UI_DrawBuildNumber_t>(0x821EBB30);
     UI_DrawText_t UI_DrawText = reinterpret_cast<UI_DrawText_t>(0x821EB858);
@@ -524,6 +531,54 @@ namespace mp
             SV_GameSendServerCommand(entityIndex, SV_CMD_CAN_IGNORE, commandString);
     }
 
+    struct SavedPos
+    {
+        float origin[3];
+        float viewangles[3];
+    };
+
+    SavedPos savedPos = {0, 0, 0, 0, 0, 0};
+
+    void Cmd_savepos_f(gentity_s *ent)
+    {
+
+        if (!CheatsOk(ent))
+            return;
+
+        // int entityIndex = ent - g_entities;
+
+        savedPos.origin[0] = ent->r.currentOrigin[0];
+        savedPos.origin[1] = ent->r.currentOrigin[1];
+        savedPos.origin[2] = ent->r.currentOrigin[2];
+
+        savedPos.viewangles[0] = ent->client->ps.viewangles[0];
+        savedPos.viewangles[1] = ent->client->ps.viewangles[1];
+        savedPos.viewangles[2] = ent->client->ps.viewangles[2];
+    }
+
+    void Cmd_loadpos_f(gentity_s *ent)
+    {
+
+        if (!CheatsOk(ent))
+            return;
+
+        int entityIndex = ent - g_entities;
+
+        if (savedPos.origin[0] == 0 && savedPos.origin[1] == 0 && savedPos.origin[2] == 0)
+        {
+            const char *commandString = va("e \"%s\"", "No saved position");
+            SV_GameSendServerCommand(entityIndex, SV_CMD_CAN_IGNORE, commandString);
+            return;
+        }
+
+        // Clear velocity
+        ent->client->ps.velocity[0] = 0;
+        ent->client->ps.velocity[1] = 0;
+        ent->client->ps.velocity[2] = 0;
+
+        TeleportPlayer(ent, savedPos.origin, savedPos.viewangles);
+    }
+
     Detour ClientCommand_Detour;
 
     void ClientCommand_Hook(int clientNum)
@@ -539,6 +594,10 @@ namespace mp
             Cmd_UFO_f(ent);
         else if (I_strnicmp(cmd, "god", 3) == 0)
             Cmd_God_f(ent);
+        else if (I_strnicmp(cmd, "savepos", 7) == 0)
+            Cmd_savepos_f(ent);
+        else if (I_strnicmp(cmd, "loadpos", 7) == 0)
+            Cmd_loadpos_f(ent);
         else
             ClientCommand_Detour.GetOriginal<decltype(ClientCommand)>()(clientNum);
     }
@@ -1713,6 +1772,9 @@ namespace mp
     {
         xbox::DbgPrint("Initializing MP\n");
 
+        auto ps_size = sizeof(playerState_s);
+        xbox::DbgPrint("playerState_s size: %d\n", ps_size);
+
         UI_DrawBuildNumber_Detour = Detour(UI_DrawBuildNumber, UI_DrawBuildNumber_Hook);
         UI_DrawBuildNumber_Detour.Install();
 
@@ -1775,5 +1837,11 @@ namespace mp
 
         cmd_function_s *cmdinput_VAR = new cmd_function_s;
         Cmd_AddCommandInternal("cmdinput", Cmd_cmdinput_f, cmdinput_VAR);
+
+        cmd_function_s *savepos_VAR = new cmd_function_s;
+        Cmd_AddCommandInternal("savepos", nullptr, savepos_VAR);
+
+        cmd_function_s *loadpos_VAR = new cmd_function_s;
+        Cmd_AddCommandInternal("loadpos", nullptr, loadpos_VAR);
     }
 }

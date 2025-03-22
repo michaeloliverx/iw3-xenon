@@ -213,15 +213,15 @@ namespace mp
 
     struct playerState_s
     {
-        int commandTime;
-        int pm_type;
-        int bobCycle;
-        int pm_flags;
+        int commandTime; // 0
+        int pm_type;     // 4
+        int bobCycle;    // 8
+        int pm_flags;    // 12
         int weapFlags;
         int otherFlags;
         int pm_time;
         float origin[3];
-        float velocity[3];
+        float velocity[3]; // 40
         float oldVelocity[2];
         int weaponTime;
         int weaponDelay;
@@ -234,21 +234,22 @@ namespace mp
         float leanf;
         int speed;
         float delta_angles[3];
-        int groundEntityNum;
+        int groundEntityNum; // 112
         float vLadderVec[3];
         int jumpTime;
-        float jumpOriginZ;
-        int legsTimer;
-        int legsAnim;
-        int torsoTimer;
+        float jumpOriginZ; // 132
+        int legsTimer;     // 136
+        int legsAnim;      // 140
+        int torsoTimer;    // 144
         int torsoAnim;
         int legsAnimDuration;
         int torsoAnimDuration;
         int damageTimer;
         int damageDuration;
-        int flinchYawAnim;
-        int movementDir;
-        int eFlags;
+        int flinchYawAnim; // 168
+        char _pad[4];      // 172
+        int movementDir;   // 176
+        int eFlags;        // 180
         int eventSequence;
         int events[4];
         unsigned int eventParms[4];
@@ -257,14 +258,14 @@ namespace mp
         int offHandIndex;
         OffhandSecondaryClass offhandSecondary;
         unsigned int weapon;
-        int weaponstate;
+        int weaponstate; // 240
         unsigned int weaponShotCount;
         float fWeaponPosFrac;
         int adsDelayTime;
         int spreadOverride;
         int spreadOverrideState;
         int viewmodelIndex;
-        float viewangles[3];
+        float viewangles[3]; // 268
         int viewHeightTarget;
         float viewHeightCurrent;
         int viewHeightLerpTime;
@@ -327,6 +328,17 @@ namespace mp
         int killCamEntity;
         hudElemState_t hud;
     };
+
+    static_assert(offsetof(playerState_s, velocity) == 40, "");
+    static_assert(offsetof(playerState_s, groundEntityNum) == 112, "");
+    static_assert(offsetof(playerState_s, jumpOriginZ) == 132, "");
+    static_assert(offsetof(playerState_s, legsTimer) == 136, "");
+    static_assert(offsetof(playerState_s, torsoTimer) == 144, "");
+    static_assert(offsetof(playerState_s, flinchYawAnim) == 168, "");
+    static_assert(offsetof(playerState_s, movementDir) == 176, "");
+    static_assert(offsetof(playerState_s, eFlags) == 180, "");
+    static_assert(offsetof(playerState_s, weaponstate) == 240, "");
+    static_assert(offsetof(playerState_s, viewangles) == 268, "");
 
     struct playerTeamState_t
     {
@@ -423,7 +435,6 @@ namespace mp
     struct gclient_s
     {
         playerState_s ps;
-        char _pad[0x04]; // not sure in correct position but retail TU4 size is 4 bytes larger
         clientSession_t sess;
         int spectatorClient;
         int noclip; // 0x30a8
@@ -1333,6 +1344,9 @@ namespace mp
     typedef dvar_s *(*Dvar_RegisterEnum_t)(const char *dvarName, const char **valueList, unsigned __int16 defaultIndex, unsigned __int16 flags, const char *description);
     typedef dvar_s *(*Dvar_RegisterInt_t)(const char *dvarName, int value, int min, int max, unsigned __int16 flags, const char *description);
 
+    typedef void (*G_SetAngle_t)(gentity_s *ent, float *origin);
+    typedef void (*G_SetOrigin_t)(gentity_s *ent, float *origin);
+
     typedef int (*I_strnicmp_t)(const char *s0, const char *s1, int n);
 
     typedef void (*Load_MapEntsPtr_t)();
@@ -1345,6 +1359,8 @@ namespace mp
     typedef int (*R_RegisterFont_t)(const char *name);
     typedef int (*R_StreamLoadFileSynchronously_t)(const char *filename, unsigned int bytesToRead, unsigned __int8 *outData);
 
+    typedef void (*SetClientViewAngle_t)(gentity_s *ent, float *angle);
+
     typedef void (*SCR_DrawSmallStringExt_t)(unsigned int x, unsigned int y, const char *string, const float *setColor);
 
     typedef char *(*Scr_ReadFile_FastFile_t)(const char *filename, const char *extFilename, const char *codePos, bool archive);
@@ -1354,6 +1370,8 @@ namespace mp
     typedef void (*SV_SendServerCommand_t)(client_t *cl, svscmd_type type, const char *fmt, ...);
 
     typedef void (*Sys_SnapVector_t)(float *result);
+
+    typedef void (*TeleportPlayer_t)(gentity_s *player, float *origin, float *angles);
 
     typedef void (*UI_DrawBuildNumber_t)(const int localClientNum);
     typedef void (*UI_DrawText_t)(const ScreenPlacement *scrPlace, const char *text, int maxChars, Font_s *font, double x, double y, int horzAlign, int vertAlign, double scale, const float *color, int style);
